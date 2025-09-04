@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Print {{ job.job_number }} D365 BOM Imports</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+        }
+    </style>
+    <script>
+        window.addEventListener('load', () => {
+            window.print();
+        });
+    </script>
+</head>
+<body class="bg-base-100">
+    <div class="no-print p-4">
+        <a href="/d365/" class="btn">Back</a>
+    </div>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-2xl font-bold">Job {{ job.job_number }} — {{ job.job_name }}</h1>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <h2 class="text-xl font-semibold">Heater Items</h2>
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>BOM</th>
+                            <th>Template</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in heater_items %}
+                        <tr>
+                            <td class="font-mono text-xs">{{ row.item_number }}</td>
+                            <td class="text-xs">{{ row.description }}</td>
+                            <td class="text-xs">{{ row.bom }}</td>
+                            <td class="text-xs">{{ row.template }}</td>
+                            <td class="text-xs">{{ row.product_type }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5">No heater items.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h2 class="text-xl font-semibold">Tank Items</h2>
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>BOM</th>
+                            <th>Template</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tank_items %}
+                        <tr>
+                            <td class="font-mono text-xs">{{ row.item_number }}</td>
+                            <td class="text-xs">{{ row.description }}</td>
+                            <td class="text-xs">{{ row.bom }}</td>
+                            <td class="text-xs">{{ row.template }}</td>
+                            <td class="text-xs">{{ row.product_type }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5">No tank items.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h2 class="text-xl font-semibold">Pump Items</h2>
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>BOM</th>
+                            <th>Template</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in pump_items %}
+                        <tr>
+                            <td class="font-mono text-xs">{{ row.item_number }}</td>
+                            <td class="text-xs">{{ row.description }}</td>
+                            <td class="text-xs">{{ row.bom }}</td>
+                            <td class="text-xs">{{ row.template }}</td>
+                            <td class="text-xs">{{ row.product_type }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5">No pump items.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D365 Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+    async function copyText(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ console.error(e); }
+    }
+    function copyRow(btn){
+        const tr = btn.closest('tr');
+        const cols = Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim());
+        copyText(cols.join('\t'));
+    }
+    function copyAll(tableId){
+        const rows = Array.from(document.querySelectorAll('#'+tableId+' tbody tr'));
+        const lines = rows.map(tr=>Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim()).join('\t'));
+        copyText(lines.join('\n'));
+    }
+    function toast(msg){
+        const t = document.createElement('div');
+        t.className='toast toast-top toast-end';
+        t.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+        document.body.appendChild(t); setTimeout(()=>t.remove(),1200);
+    }
+    function submitGenerateAll(){
+        const forms = Array.from(document.querySelectorAll('form'));
+        const all = new FormData();
+        const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if(csrf){ all.append('csrfmiddlewaretoken', csrf.value); }
+        all.append('generate_all','1');
+        forms.forEach(f=>{
+            new FormData(f).forEach((v,k)=>{
+                if(k==='csrfmiddlewaretoken') return;
+                if(v!==null && v!==undefined && v!=='') all.append(k,v);
+            });
+        });
+        const tmp = document.createElement('form');
+        tmp.method='POST';
+        tmp.action='';
+        for (const [k,v] of all.entries()){
+            const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; tmp.appendChild(i);
+        }
+        document.body.appendChild(tmp); tmp.submit();
+    }
+    </script>
+    <style>
+        .label .label-text{font-weight:600}
+    </style>
+    </head>
+<body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Imports</div>
+        <a class="btn btn-ghost" href="/">Home</a>
+    </div>
+
+    <div class="container mx-auto p-4">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title">D365 Generator</h2>
+
+                <form method="post" class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% csrf_token %}
+                    <label class="form-control">
+                        <div class="label"><span class="label-text">Job #</span></div>
+                        <input name="job_number" value="{{ job_number|default:'' }}" required class="input input-bordered" placeholder="e.g. 35284" />
+                    </label>
+                    <label class="form-control">
+                        <div class="label"><span class="label-text">Job Name</span></div>
+                        <input name="job_name" value="{{ job_name|default:'' }}" class="input input-bordered" placeholder="Optional" />
+                    </label>
+                    <div class="flex items-end gap-2">
+                        <button type="button" onclick="submitGenerateAll()" class="btn btn-primary">Generate All</button>
+                        <a class="btn" href="/d365/print/{{ job_number|default:'' }}/">Print</a>
+                    </div>
+                </form>
+
+                <div role="tablist" class="tabs tabs-lifted">
+                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Import Heater" checked />
+                    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
+                        <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="job_number" value="{{ job_number|default:'' }}" />
+                            <input type="hidden" name="heater_submit" value="1" />
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash #</span></div>
+                                <input name="heater_dash_number" value="{{ heater_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="heater_material" class="select select-bordered">
+                                    {% for x in heater_materials %}<option value="{{ x.code }}" {% if heater_initial and heater_initial.material == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Model</span></div>
+                                <select name="heater_model" class="select select-bordered">
+                                    {% for x in heater_models %}<option value="{{ x.code }}" {% if heater_initial and heater_initial.heater_model == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater Diameter</span></div>
+                                <select name="heater_diameter" class="select select-bordered">
+                                    {% for x in heater_diameters %}<option value="{{ x.diameter_inch }}" {% if heater_initial and heater_initial.heater_diameter == x.diameter_inch %}selected{% endif %}>{{ x.diameter_inch }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater Height (ft)</span></div>
+                                <select name="heater_height" class="select select-bordered">
+                                    {% for x in heater_heights %}<option value="{{ x.height_ft }}" {% if heater_initial and heater_initial.heater_height == x.height_ft %}selected{% endif %}>{{ x.height_ft }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Stack Diameter</span></div>
+                                <select name="stack_diameter" class="select select-bordered">
+                                    {% for x in stack_diameters %}<option value="{{ x.diameter_inch }}" {% if heater_initial and heater_initial.stack_diameter == x.diameter_inch %}selected{% endif %}>{{ x.diameter_inch }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Stack Height (ft)</span></div>
+                                <select name="stack_height" class="select select-bordered">
+                                    <option value="">—</option>
+                                    {% for x in stack_heights %}<option value="{{ x.height_ft }}">{{ x.height_ft }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Flange Inlet (in)</span></div>
+                                <select name="flange_inlet" class="select select-bordered">
+                                    {% for x in flange_inlets %}<option value="{{ x.size_inch }}" {% if heater_initial and heater_initial.flange_inlet == x.size_inch %}selected{% endif %}>{{ x.size_inch }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Gas Train Size (in)</span></div>
+                                <select name="gas_train_size" class="select select-bordered">
+                                    {% for x in gas_train_sizes %}<option value="{{ x.size_inch }}" {% if heater_initial and heater_initial.gas_train_size == x.size_inch %}selected{% endif %}>{{ x.size_inch }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Gas Train Mount</span></div>
+                                <select name="gas_train_mount" class="select select-bordered">
+                                    {% for x in gas_train_mounts %}<option value="{{ x.code }}" {% if heater_initial and heater_initial.gas_train_mount == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">BTU (MMBTU)</span></div>
+                                <select name="btu" class="select select-bordered">
+                                    {% for x in btu_ratings %}<option value="{{ x.value_mmbtu }}" {% if heater_initial and heater_initial.btu == x.value_mmbtu %}selected{% endif %}>{{ x.value_mmbtu }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Hand</span></div>
+                                <select name="heater_hand" class="select select-bordered">
+                                    {% for x in heater_hands %}<option value="{{ x.code }}" {% if heater_initial and heater_initial.hand == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater A/B</span></div>
+                                <select name="heater_ab" class="select select-bordered">
+                                    {% for x in heater_ab_list %}<option value="{{ x.code }}" {% if heater_initial and heater_initial.heater_ab == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <div class="md:col-span-3"><button class="btn btn-primary">Generate Heater</button></div>
+                        </form>
+
+                        {% if heater_items %}
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-semibold">Heater Generated Items</h3>
+                                <button class="btn btn-sm" onclick="copyAll('heater-table')">Copy All</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="heater-table" class="table table-zebra w-full">
+                                    <thead><tr><th>Item Number</th><th>Description</th><th>BOM</th><th>Template</th><th>Type</th><th></th></tr></thead>
+                                    <tbody>
+                                        {% for r in heater_items %}
+                                        <tr>
+                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
+                                            <td data-copy class="text-xs">{{ r.description }}</td>
+                                            <td data-copy class="text-xs">{{ r.bom }}</td>
+                                            <td data-copy class="text-xs">{{ r.template }}</td>
+                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Import Tank" />
+                    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
+                        <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="job_number" value="{{ job_number|default:'' }}" />
+                            <input type="hidden" name="tank_submit" value="1" />
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash #</span></div>
+                                <input name="tank_dash_number" value="{{ tank_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="tank_material" class="select select-bordered">
+                                    {% for x in tank_materials %}<option value="{{ x.code }}" {% if tank_initial and tank_initial.material == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Type</span></div>
+                                <select name="tank_type" class="select select-bordered">
+                                    {% for x in tank_types %}<option value="{{ x.code }}" {% if tank_initial and tank_initial.tank_type == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Diameter (in)</span></div>
+                                <select name="tank_diameter" class="select select-bordered">
+                                    {% for x in tank_diameters %}<option value="{{ x.diameter_inch }}" {% if tank_initial and tank_initial.tank_diameter == x.diameter_inch %}selected{% endif %}>{{ x.diameter_inch }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Height (ft)</span></div>
+                                <select name="tank_height" class="select select-bordered">
+                                    {% for x in tank_heights %}<option value="{{ x.height_ft }}" {% if tank_initial and tank_initial.tank_height == x.height_ft %}selected{% endif %}>{{ x.height_ft }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <div class="md:col-span-3"><button class="btn btn-primary">Generate Tank</button></div>
+                        </form>
+
+                        {% if tank_items %}
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-semibold">Tank Generated Items</h3>
+                                <button class="btn btn-sm" onclick="copyAll('tank-table')">Copy All</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="tank-table" class="table table-zebra w-full">
+                                    <thead><tr><th>Item Number</th><th>Description</th><th>BOM</th><th>Template</th><th>Type</th><th></th></tr></thead>
+                                    <tbody>
+                                        {% for r in tank_items %}
+                                        <tr>
+                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
+                                            <td data-copy class="text-xs">{{ r.description }}</td>
+                                            <td data-copy class="text-xs">{{ r.bom }}</td>
+                                            <td data-copy class="text-xs">{{ r.template }}</td>
+                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Pump" />
+                    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
+                        <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="job_number" value="{{ job_number|default:'' }}" />
+                            <input type="hidden" name="pump_submit" value="1" />
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash #</span></div>
+                                <input name="pump_dash_number" value="{{ pump_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="pump_material" class="select select-bordered">
+                                    {% for x in pump_materials %}<option value="{{ x.code }}" {% if pump_initial and pump_initial.material == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text"># of Pumps</span></div>
+                                <select name="pump_type" class="select select-bordered">
+                                    {% for x in pump_types %}<option value="{{ x.code }}" {% if pump_initial and pump_initial.pump_type == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Pump Pressure</span></div>
+                                <select name="pump_pressure" class="select select-bordered">
+                                    {% for x in pump_pressures %}<option value="{{ x.code }}" {% if pump_initial and pump_initial.pump_pressure == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">System Type</span></div>
+                                <select name="system_type" class="select select-bordered">
+                                    {% for x in system_types %}<option value="{{ x.code }}" {% if pump_initial and pump_initial.system_type == x.code %}selected{% endif %}>{{ x.display_name }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">HP</span></div>
+                                <select name="hp" class="select select-bordered">
+                                    {% for x in horsepower %}<option value="{{ x.hp }}" {% if pump_initial and pump_initial.hp == x.hp %}selected{% endif %}>{{ x.hp }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Skid L/W/H (in)</span></div>
+                                <div class="join">
+                                    <input name="skid_length" class="input input-bordered join-item" placeholder="L" />
+                                    <input name="skid_width" class="input input-bordered join-item" placeholder="W" />
+                                    <input name="skid_height" class="input input-bordered join-item" placeholder="H" />
+                                </div>
+                            </label>
+                            <div class="md:col-span-3"><button class="btn btn-primary">Generate Pump</button></div>
+                        </form>
+
+                        {% if pump_items %}
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-semibold">Pump Generated Items</h3>
+                                <button class="btn btn-sm" onclick="copyAll('pump-table')">Copy All</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="pump-table" class="table table-zebra w-full">
+                                    <thead><tr><th>Item Number</th><th>Description</th><th>BOM</th><th>Template</th><th>Type</th><th></th></tr></thead>
+                                    <tbody>
+                                        {% for r in pump_items %}
+                                        <tr>
+                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
+                                            <td data-copy class="text-xs">{{ r.description }}</td>
+                                            <td data-copy class="text-xs">{{ r.bom }}</td>
+                                            <td data-copy class="text-xs">{{ r.template }}</td>
+                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
