@@ -10,6 +10,74 @@
     async function copyText(text){
         try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ console.error(e); }
     }
+    async function copyToClipboard(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(e){ console.error(e); }
+    }
+    
+    function draftPrecutEmail() {
+        const jobNumber = document.querySelector('input[name="job_number"]').value;
+        if (!jobNumber) {
+            toast('Please enter a Job Number first', 'error');
+            return;
+        }
+        
+        const selectedSections = getSelectedSections();
+        if (selectedSections.length === 0) {
+            toast('Please select at least one section', 'error');
+            return;
+        }
+        
+        let precutItems = [];
+        
+        // Collect PRECUT items only from selected sections
+        const sectionTableMap = {
+            'heater': 'heater-table',
+            'tank': 'tank-table',
+            'pump': 'pump-table'
+        };
+        
+        selectedSections.forEach(section => {
+            const tableId = sectionTableMap[section];
+            const table = document.getElementById(tableId);
+            if (table) {
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const descriptionButton = row.cells[1].querySelector('button');
+                    const itemNumberButton = row.cells[0].querySelector('button');
+                    
+                    if (descriptionButton && itemNumberButton) {
+                        const description = descriptionButton.textContent.trim();
+                        const itemNumber = itemNumberButton.textContent.trim();
+                        
+                        if (description.includes('PRECUT')) {
+                            precutItems.push(`${itemNumber}\t${description}`);
+                        }
+                    }
+                });
+            }
+        });
+        
+        if (precutItems.length === 0) {
+            toast('No PRECUT items found in selected sections', 'info');
+            return;
+        }
+        
+        // Build email content
+        const subject = `NEW P/N REQUEST for Job: ${jobNumber}`;
+        const body = [
+            `Hi George, Can you setup P/Ns for Job: ${jobNumber}`,
+            '',
+            ...precutItems,
+            '',
+            'Thanks so Much!!!!'
+        ].join('\n');
+        
+        // Create mailto link
+        const mailtoLink = `mailto:gemurphy@kemcosystems.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        // Open email client
+        window.location.href = mailtoLink;
+    }
     function copyRow(btn){
         const tr = btn.closest('tr');
         const cols = Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim());
@@ -46,6 +114,80 @@
         }
         document.body.appendChild(tmp); tmp.submit();
     }
+    
+    function submitGenerateSelected(){
+        const selectedSections = getSelectedSections();
+        if (selectedSections.length === 0) {
+            toast('Please select at least one section', 'error');
+            return;
+        }
+        
+        const forms = Array.from(document.querySelectorAll('form'));
+        const all = new FormData();
+        const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if(csrf){ all.append('csrfmiddlewaretoken', csrf.value); }
+        all.append('generate_selected','1');
+        all.append('selected_sections', selectedSections.join(','));
+        
+        forms.forEach(f=>{
+            new FormData(f).forEach((v,k)=>{
+                if(k==='csrfmiddlewaretoken') return;
+                if(v!==null && v!==undefined && v!=='') all.append(k,v);
+            });
+        });
+        const tmp = document.createElement('form');
+        tmp.method='POST';
+        tmp.action='';
+        for (const [k,v] of all.entries()){
+            const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; tmp.appendChild(i);
+        }
+        document.body.appendChild(tmp); tmp.submit();
+    }
+    
+    function getSelectedSections(){
+        const sections = [];
+        if (document.getElementById('toggle_heater').checked) sections.push('heater');
+        if (document.getElementById('toggle_tank').checked) sections.push('tank');
+        if (document.getElementById('toggle_pump').checked) sections.push('pump');
+        return sections;
+    }
+    
+    function saveSelectedSections(){
+        const selectedSections = getSelectedSections();
+        // Save to session via AJAX
+        fetch('/d365/save-selection/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({selected_sections: selectedSections})
+        });
+    }
+    
+    // Add event listeners to save state when checkboxes change
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('toggle_heater').addEventListener('change', saveSelectedSections);
+        document.getElementById('toggle_tank').addEventListener('change', saveSelectedSections);
+        document.getElementById('toggle_pump').addEventListener('change', saveSelectedSections);
+    });
+    
+    function printSelectedSections(){
+        const selectedSections = getSelectedSections();
+        if (selectedSections.length === 0) {
+            toast('Please select at least one section', 'error');
+            return;
+        }
+        
+        const jobNumber = document.querySelector('input[name="job_number"]').value;
+        if (!jobNumber) {
+            toast('Please enter a Job Number first', 'error');
+            return;
+        }
+        
+        const sectionsParam = selectedSections.join(',');
+        window.open(`/d365/print/${jobNumber}/?sections=${sectionsParam}`, '_blank');
+    }
     </script>
     <style>
         .label .label-text{font-weight:600}
@@ -72,9 +214,31 @@
                         <div class="label"><span class="label-text">Job Name</span></div>
                         <input name="job_name" value="{{ job_name|default:'' }}" class="input input-bordered" placeholder="Optional" />
                     </label>
+                    <!-- Section Toggles -->
+                    <div class="card bg-base-100 shadow-xl mb-4">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-sm">Section Selection</h3>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" id="toggle_heater" class="checkbox checkbox-primary" {% if 'heater' in selected_sections %}checked{% endif %}>
+                                    <span class="text-sm">Heater</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" id="toggle_tank" class="checkbox checkbox-primary" {% if 'tank' in selected_sections %}checked{% endif %}>
+                                    <span class="text-sm">Tank</span>
+                                </label>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" id="toggle_pump" class="checkbox checkbox-primary" {% if 'pump' in selected_sections %}checked{% endif %}>
+                                    <span class="text-sm">Pump</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="flex items-end gap-2">
-                        <button type="button" onclick="submitGenerateAll()" class="btn btn-primary">Generate All</button>
-                        <a class="btn" href="/d365/print/{{ job_number|default:'' }}/">Print</a>
+                        <button type="button" onclick="submitGenerateSelected()" class="btn btn-primary">Generate Selected</button>
+                        <button type="button" onclick="printSelectedSections()" class="btn btn-accent">Print Selected</button>
+                        <button type="button" onclick="draftPrecutEmail()" class="btn btn-secondary">Draft Precut P/N Email</button>
                     </div>
                 </form>
 
@@ -177,11 +341,11 @@
                                     <tbody>
                                         {% for r in heater_items %}
                                         <tr>
-                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
-                                            <td data-copy class="text-xs">{{ r.description }}</td>
-                                            <td data-copy class="text-xs">{{ r.bom }}</td>
-                                            <td data-copy class="text-xs">{{ r.template }}</td>
-                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.item_number }}')">{{ r.item_number }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.description }}')">{{ r.description }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.bom }}')">{{ r.bom }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.template }}')">{{ r.template }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.product_type }}')">{{ r.product_type }}</button></td>
                                             <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
                                         </tr>
                                         {% endfor %}
@@ -241,11 +405,11 @@
                                     <tbody>
                                         {% for r in tank_items %}
                                         <tr>
-                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
-                                            <td data-copy class="text-xs">{{ r.description }}</td>
-                                            <td data-copy class="text-xs">{{ r.bom }}</td>
-                                            <td data-copy class="text-xs">{{ r.template }}</td>
-                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.item_number }}')">{{ r.item_number }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.description }}')">{{ r.description }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.bom }}')">{{ r.bom }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.template }}')">{{ r.template }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.product_type }}')">{{ r.product_type }}</button></td>
                                             <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
                                         </tr>
                                         {% endfor %}
@@ -319,11 +483,11 @@
                                     <tbody>
                                         {% for r in pump_items %}
                                         <tr>
-                                            <td data-copy class="font-mono text-xs">{{ r.item_number }}</td>
-                                            <td data-copy class="text-xs">{{ r.description }}</td>
-                                            <td data-copy class="text-xs">{{ r.bom }}</td>
-                                            <td data-copy class="text-xs">{{ r.template }}</td>
-                                            <td data-copy class="text-xs">{{ r.product_type }}</td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.item_number }}')">{{ r.item_number }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.description }}')">{{ r.description }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left font-mono text-xs" onclick="copyToClipboard('{{ r.bom }}')">{{ r.bom }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.template }}')">{{ r.template }}</button></td>
+                                            <td><button class="btn btn-ghost btn-sm w-full text-left text-xs" onclick="copyToClipboard('{{ r.product_type }}')">{{ r.product_type }}</button></td>
                                             <td><button class="btn btn-xs" onclick="copyRow(this)" type="button">Copy</button></td>
                                         </tr>
                                         {% endfor %}

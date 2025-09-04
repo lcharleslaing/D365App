@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D365 Pump Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+    async function copyText(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ console.error(e); }
+    }
+    async function copyToClipboard(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(e){ console.error(e); }
+    }
+    
+    function copyRow(btn){
+        const tr = btn.closest('tr');
+        const cols = Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim());
+        copyText(cols.join('\t'));
+    }
+    function copyAll(tableId){
+        const rows = Array.from(document.querySelectorAll('#'+tableId+' tbody tr'));
+        const lines = rows.map(tr=>Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim()).join('\t'));
+        copyText(lines.join('\n'));
+    }
+    function toast(msg){
+        const t = document.createElement('div');
+        t.className='toast toast-top toast-end';
+        t.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+        document.body.appendChild(t); setTimeout(()=>t.remove(),1200);
+    }
+    function submitGenerate(){
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        formData.append('pump_submit', '1');
+        
+        const tmp = document.createElement('form');
+        tmp.method='POST';
+        tmp.action='';
+        for (const [k,v] of formData.entries()){
+            const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; tmp.appendChild(i);
+        }
+        document.body.appendChild(tmp); tmp.submit();
+    }
+    </script>
+    <style>
+        .label .label-text{font-weight:600}
+    </style>
+    </head>
+<body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Tools</div>
+        <a class="btn btn-ghost" href="/d365/">All Sections</a>
+        <a class="btn btn-ghost" href="/d365/generate/heater/">Heater</a>
+        <a class="btn btn-ghost" href="/d365/generate/tank/">Tank</a>
+        <a class="btn btn-ghost" href="/admin/">Admin</a>
+        {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
+        {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </div>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">D365 Pump Generator</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Pump Form -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Pump Configuration</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Number</span></div>
+                                <input name="job_number" value="{{ job_number|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Name</span></div>
+                                <input name="job_name" value="{{ job_name|default:'' }}" class="input input-bordered" placeholder="Optional" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash Number</span></div>
+                                <input name="pump_dash_number" value="{{ pump_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Pump Type</span></div>
+                                <select name="pump_type" class="select select-bordered" required>
+                                    <option value="">Select Type</option>
+                                    {% for type in pump_types %}
+                                    <option value="{{ type.code }}" {% if pump_initial and pump_initial.pump_type == type.code %}selected{% endif %}>{{ type.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Pump Pressure</span></div>
+                                <select name="pump_pressure" class="select select-bordered" required>
+                                    <option value="">Select Pressure</option>
+                                    {% for pressure in pump_pressures %}
+                                    <option value="{{ pressure.code }}" {% if pump_initial and pump_initial.pump_pressure == pressure.code %}selected{% endif %}>{{ pressure.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">System Type</span></div>
+                                <select name="system_type" class="select select-bordered" required>
+                                    <option value="">Select System</option>
+                                    {% for system in system_types %}
+                                    <option value="{{ system.code }}" {% if pump_initial and pump_initial.system_type == system.code %}selected{% endif %}>{{ system.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Horsepower</span></div>
+                                <select name="hp" class="select select-bordered" required>
+                                    <option value="">Select HP</option>
+                                    {% for hp in horsepower %}
+                                    <option value="{{ hp.hp }}" {% if pump_initial and pump_initial.hp == hp.hp %}selected{% endif %}>{{ hp.hp }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="pump_material" class="select select-bordered" required>
+                                    <option value="">Select Material</option>
+                                    {% for material in pump_materials %}
+                                    <option value="{{ material.code }}" {% if pump_initial and pump_initial.material == material.code %}selected{% endif %}>{{ material.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Skid Length</span></div>
+                                <input name="skid_length" type="number" step="0.01" value="{{ pump_initial.skid_length|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Skid Width</span></div>
+                                <input name="skid_width" type="number" step="0.01" value="{{ pump_initial.skid_width|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Skid Height</span></div>
+                                <input name="skid_height" type="number" step="0.01" value="{{ pump_initial.skid_height|default:'' }}" class="input input-bordered" required />
+                            </label>
+                        </div>
+                        <div class="flex gap-4 mt-6">
+                            <button type="button" onclick="submitGenerate()" class="btn btn-primary">Generate Pump Items</button>
+                            <button type="button" onclick="window.print()" class="btn btn-accent">Print</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Generated Items -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Generated Pump Items</h2>
+                    <div class="overflow-x-auto">
+                        <table id="pump-table" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item #</th>
+                                    <th>Description</th>
+                                    <th>BOM</th>
+                                    <th>Template</th>
+                                    <th>Product Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pump_items %}
+                                <tr>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.item_number }}')" class="btn btn-xs btn-ghost">{{ item.item_number }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.description }}')" class="btn btn-xs btn-ghost">{{ item.description }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.bom }}')" class="btn btn-xs btn-ghost">{{ item.bom }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.template }}')" class="btn btn-xs btn-ghost">{{ item.template }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.product_type }}')" class="btn btn-xs btn-ghost">{{ item.product_type }}</button></td>
+                                    <td><button onclick="copyRow(this)" class="btn btn-xs btn-primary">Copy All</button></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-gray-500">No pump items generated yet</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if pump_items %}
+                        <div class="mt-4">
+                            <button onclick="copyAll('pump-table')" class="btn btn-sm btn-secondary">Copy All Items</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

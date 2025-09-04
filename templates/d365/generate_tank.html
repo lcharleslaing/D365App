@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D365 Tank Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+    async function copyText(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ console.error(e); }
+    }
+    async function copyToClipboard(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(e){ console.error(e); }
+    }
+    
+    function copyRow(btn){
+        const tr = btn.closest('tr');
+        const cols = Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim());
+        copyText(cols.join('\t'));
+    }
+    function copyAll(tableId){
+        const rows = Array.from(document.querySelectorAll('#'+tableId+' tbody tr'));
+        const lines = rows.map(tr=>Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim()).join('\t'));
+        copyText(lines.join('\n'));
+    }
+    function toast(msg){
+        const t = document.createElement('div');
+        t.className='toast toast-top toast-end';
+        t.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+        document.body.appendChild(t); setTimeout(()=>t.remove(),1200);
+    }
+    function submitGenerate(){
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        formData.append('tank_submit', '1');
+        
+        const tmp = document.createElement('form');
+        tmp.method='POST';
+        tmp.action='';
+        for (const [k,v] of formData.entries()){
+            const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; tmp.appendChild(i);
+        }
+        document.body.appendChild(tmp); tmp.submit();
+    }
+    </script>
+    <style>
+        .label .label-text{font-weight:600}
+    </style>
+    </head>
+<body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Tools</div>
+        <a class="btn btn-ghost" href="/d365/">All Sections</a>
+        <a class="btn btn-ghost" href="/d365/generate/heater/">Heater</a>
+        <a class="btn btn-ghost" href="/d365/generate/pump/">Pump</a>
+        <a class="btn btn-ghost" href="/admin/">Admin</a>
+        {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
+        {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </div>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">D365 Tank Generator</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Tank Form -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Tank Configuration</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Number</span></div>
+                                <input name="job_number" value="{{ job_number|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Name</span></div>
+                                <input name="job_name" value="{{ job_name|default:'' }}" class="input input-bordered" placeholder="Optional" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash Number</span></div>
+                                <input name="tank_dash_number" value="{{ tank_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Tank Diameter</span></div>
+                                <select name="tank_diameter" class="select select-bordered" required>
+                                    <option value="">Select Diameter</option>
+                                    {% for diameter in tank_diameters %}
+                                    <option value="{{ diameter.diameter_inch }}" {% if tank_initial and tank_initial.tank_diameter == diameter.diameter_inch %}selected{% endif %}>{{ diameter.diameter_inch }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Tank Height</span></div>
+                                <select name="tank_height" class="select select-bordered" required>
+                                    <option value="">Select Height</option>
+                                    {% for height in tank_heights %}
+                                    <option value="{{ height.height_ft }}" {% if tank_initial and tank_initial.tank_height == height.height_ft %}selected{% endif %}>{{ height.height_ft }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Tank Inches</span></div>
+                                <input name="tank_inches" type="number" step="0.01" value="{{ tank_initial.tank_inches|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="tank_material" class="select select-bordered" required>
+                                    <option value="">Select Material</option>
+                                    {% for material in tank_materials %}
+                                    <option value="{{ material.code }}" {% if tank_initial and tank_initial.material == material.code %}selected{% endif %}>{{ material.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Tank Type</span></div>
+                                <select name="tank_type" class="select select-bordered" required>
+                                    <option value="">Select Type</option>
+                                    {% for type in tank_types %}
+                                    <option value="{{ type.code }}" {% if tank_initial and tank_initial.tank_type == type.code %}selected{% endif %}>{{ type.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                        <div class="flex gap-4 mt-6">
+                            <button type="button" onclick="submitGenerate()" class="btn btn-primary">Generate Tank Items</button>
+                            <button type="button" onclick="window.print()" class="btn btn-accent">Print</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Generated Items -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Generated Tank Items</h2>
+                    <div class="overflow-x-auto">
+                        <table id="tank-table" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item #</th>
+                                    <th>Description</th>
+                                    <th>BOM</th>
+                                    <th>Template</th>
+                                    <th>Product Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in tank_items %}
+                                <tr>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.item_number }}')" class="btn btn-xs btn-ghost">{{ item.item_number }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.description }}')" class="btn btn-xs btn-ghost">{{ item.description }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.bom }}')" class="btn btn-xs btn-ghost">{{ item.bom }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.template }}')" class="btn btn-xs btn-ghost">{{ item.template }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.product_type }}')" class="btn btn-xs btn-ghost">{{ item.product_type }}</button></td>
+                                    <td><button onclick="copyRow(this)" class="btn btn-xs btn-primary">Copy All</button></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-gray-500">No tank items generated yet</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if tank_items %}
+                        <div class="mt-4">
+                            <button onclick="copyAll('tank-table')" class="btn btn-sm btn-secondary">Copy All Items</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

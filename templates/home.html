@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kemco Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+</head>
+<body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+        <div class="flex-1 px-4 text-xl font-bold">Kemco Portal</div>
+        <a class="btn btn-ghost" href="/admin/">Admin</a>
+    </div>
+
+    <div class="container mx-auto p-4">
+        <div class="hero bg-base-100 rounded-lg shadow mb-8">
+            <div class="hero-content text-center">
+                <div class="max-w-md">
+                    <h1 class="text-5xl font-bold">Kemco Portal</h1>
+                    <p class="py-6">Internal tools and utilities for Kemco Environmental Corp</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- D365 BOM Import Tool -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">D365 BOM Import Tool</h2>
+                    <p>Generate, save, load, and print D365 BOM import data for Kemco jobs. Convert Excel-driven logic into a web interface with consistent dropdowns.</p>
+                    <div class="card-actions justify-end">
+                        <a href="/d365/" class="btn btn-primary">Open Tool</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder for future tools -->
+            <div class="card bg-base-100 shadow-xl opacity-50">
+                <div class="card-body">
+                    <h2 class="card-title text-secondary">Coming Soon</h2>
+                    <p>Additional tools and utilities will be added here as they are developed.</p>
+                    <div class="card-actions justify-end">
+                        <button class="btn btn-secondary" disabled>Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl opacity-50">
+                <div class="card-body">
+                    <h2 class="card-title text-secondary">Coming Soon</h2>
+                    <p>Additional tools and utilities will be added here as they are developed.</p>
+                    <div class="card-actions justify-end">
+                        <button class="btn btn-secondary" disabled>Coming Soon</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Jobs Section -->
+        <div class="mt-8">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h2 class="card-title">Recent D365 Jobs</h2>
+                    <p class="text-sm opacity-70">Quick access to your most recent D365 BOM jobs</p>
+                    <div class="mt-4">
+                        <a href="/d365/" class="btn btn-outline">View All Jobs</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

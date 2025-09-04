@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D365 Heater Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+    async function copyText(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied'); }catch(e){ console.error(e); }
+    }
+    async function copyToClipboard(text){
+        try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }catch(e){ console.error(e); }
+    }
+    
+    function copyRow(btn){
+        const tr = btn.closest('tr');
+        const cols = Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim());
+        copyText(cols.join('\t'));
+    }
+    function copyAll(tableId){
+        const rows = Array.from(document.querySelectorAll('#'+tableId+' tbody tr'));
+        const lines = rows.map(tr=>Array.from(tr.querySelectorAll('[data-copy]')).map(td=>td.textContent.trim()).join('\t'));
+        copyText(lines.join('\n'));
+    }
+    function toast(msg){
+        const t = document.createElement('div');
+        t.className='toast toast-top toast-end';
+        t.innerHTML = `<div class="alert alert-success">${msg}</div>`;
+        document.body.appendChild(t); setTimeout(()=>t.remove(),1200);
+    }
+    function submitGenerate(){
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        formData.append('heater_submit', '1');
+        
+        const tmp = document.createElement('form');
+        tmp.method='POST';
+        tmp.action='';
+        for (const [k,v] of formData.entries()){
+            const i=document.createElement('input'); i.type='hidden'; i.name=k; i.value=v; tmp.appendChild(i);
+        }
+        document.body.appendChild(tmp); tmp.submit();
+    }
+    </script>
+    <style>
+        .label .label-text{font-weight:600}
+    </style>
+    </head>
+<body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Tools</div>
+        <a class="btn btn-ghost" href="/d365/">All Sections</a>
+        <a class="btn btn-ghost" href="/d365/generate/tank/">Tank</a>
+        <a class="btn btn-ghost" href="/d365/generate/pump/">Pump</a>
+        <a class="btn btn-ghost" href="/admin/">Admin</a>
+        {% if user.is_authenticated %}
+        <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
+        {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </div>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">D365 Heater Generator</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Heater Form -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Heater Configuration</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Number</span></div>
+                                <input name="job_number" value="{{ job_number|default:'' }}" class="input input-bordered" required />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Job Name</span></div>
+                                <input name="job_name" value="{{ job_name|default:'' }}" class="input input-bordered" placeholder="Optional" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Dash Number</span></div>
+                                <input name="heater_dash_number" value="{{ heater_dash_value|default:'01' }}" class="input input-bordered" />
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater Diameter</span></div>
+                                <select name="heater_diameter" class="select select-bordered" required>
+                                    <option value="">Select Diameter</option>
+                                    {% for diameter in heater_diameters %}
+                                    <option value="{{ diameter.diameter_inch }}" {% if heater_initial and heater_initial.heater_diameter == diameter.diameter_inch %}selected{% endif %}>{{ diameter.diameter_inch }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater Height</span></div>
+                                <select name="heater_height" class="select select-bordered" required>
+                                    <option value="">Select Height</option>
+                                    {% for height in heater_heights %}
+                                    <option value="{{ height.height_ft }}" {% if heater_initial and heater_initial.heater_height == height.height_ft %}selected{% endif %}>{{ height.height_ft }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Stack Diameter</span></div>
+                                <select name="stack_diameter" class="select select-bordered" required>
+                                    <option value="">Select Diameter</option>
+                                    {% for diameter in stack_diameters %}
+                                    <option value="{{ diameter.diameter_inch }}" {% if heater_initial and heater_initial.stack_diameter == diameter.diameter_inch %}selected{% endif %}>{{ diameter.diameter_inch }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Stack Height</span></div>
+                                <select name="stack_height" class="select select-bordered">
+                                    <option value="">Select Height</option>
+                                    {% for height in stack_heights %}
+                                    <option value="{{ height.height_ft }}">{{ height.height_ft }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Flange Inlet</span></div>
+                                <select name="flange_inlet" class="select select-bordered" required>
+                                    <option value="">Select Size</option>
+                                    {% for inlet in flange_inlets %}
+                                    <option value="{{ inlet.size_inch }}" {% if heater_initial and heater_initial.flange_inlet == inlet.size_inch %}selected{% endif %}>{{ inlet.size_inch }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater Model</span></div>
+                                <select name="heater_model" class="select select-bordered" required>
+                                    <option value="">Select Model</option>
+                                    {% for model in heater_models %}
+                                    <option value="{{ model.code }}" {% if heater_initial and heater_initial.heater_model == model.code %}selected{% endif %}>{{ model.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Material</span></div>
+                                <select name="heater_material" class="select select-bordered" required>
+                                    <option value="">Select Material</option>
+                                    {% for material in heater_materials %}
+                                    <option value="{{ material.code }}" {% if heater_initial and heater_initial.material == material.code %}selected{% endif %}>{{ material.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Gas Train Size</span></div>
+                                <select name="gas_train_size" class="select select-bordered" required>
+                                    <option value="">Select Size</option>
+                                    {% for size in gas_train_sizes %}
+                                    <option value="{{ size.size_inch }}" {% if heater_initial and heater_initial.gas_train_size == size.size_inch %}selected{% endif %}>{{ size.size_inch }}"</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Gas Train Mount</span></div>
+                                <select name="gas_train_mount" class="select select-bordered" required>
+                                    <option value="">Select Mount</option>
+                                    {% for mount in gas_train_mounts %}
+                                    <option value="{{ mount.code }}" {% if heater_initial and heater_initial.gas_train_mount == mount.code %}selected{% endif %}>{{ mount.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">BTU Rating</span></div>
+                                <select name="btu" class="select select-bordered" required>
+                                    <option value="">Select BTU</option>
+                                    {% for btu in btu_ratings %}
+                                    <option value="{{ btu.value_mmbtu }}" {% if heater_initial and heater_initial.btu == btu.value_mmbtu %}selected{% endif %}>{{ btu.value_mmbtu }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Hand</span></div>
+                                <select name="heater_hand" class="select select-bordered" required>
+                                    <option value="">Select Hand</option>
+                                    {% for hand in heater_hands %}
+                                    <option value="{{ hand.code }}" {% if heater_initial and heater_initial.hand == hand.code %}selected{% endif %}>{{ hand.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Heater A/B</span></div>
+                                <select name="heater_ab" class="select select-bordered">
+                                    <option value="">Select A/B</option>
+                                    {% for ab in heater_ab_list %}
+                                    <option value="{{ ab.code }}" {% if heater_initial and heater_initial.heater_ab == ab.code %}selected{% endif %}>{{ ab.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Single/Dual</span></div>
+                                <select name="heater_single_dual" class="select select-bordered">
+                                    <option value="S" {% if heater_initial and heater_initial.heater_single_dual == 'S' %}selected{% endif %}>Single</option>
+                                    <option value="D" {% if heater_initial and heater_initial.heater_single_dual == 'D' %}selected{% endif %}>Dual</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="flex gap-4 mt-6">
+                            <button type="button" onclick="submitGenerate()" class="btn btn-primary">Generate Heater Items</button>
+                            <button type="button" onclick="window.print()" class="btn btn-accent">Print</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Generated Items -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Generated Heater Items</h2>
+                    <div class="overflow-x-auto">
+                        <table id="heater-table" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item #</th>
+                                    <th>Description</th>
+                                    <th>BOM</th>
+                                    <th>Template</th>
+                                    <th>Product Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in heater_items %}
+                                <tr>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.item_number }}')" class="btn btn-xs btn-ghost">{{ item.item_number }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.description }}')" class="btn btn-xs btn-ghost">{{ item.description }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.bom }}')" class="btn btn-xs btn-ghost">{{ item.bom }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.template }}')" class="btn btn-xs btn-ghost">{{ item.template }}</button></td>
+                                    <td data-copy><button onclick="copyToClipboard('{{ item.product_type }}')" class="btn btn-xs btn-ghost">{{ item.product_type }}</button></td>
+                                    <td><button onclick="copyRow(this)" class="btn btn-xs btn-primary">Copy All</button></td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-gray-500">No heater items generated yet</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if heater_items %}
+                        <div class="mt-4">
+                            <button onclick="copyAll('heater-table')" class="btn btn-sm btn-secondary">Copy All Items</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

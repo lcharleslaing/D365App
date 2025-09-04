@@ -9,7 +9,7 @@
 </head>
 <body class="min-h-screen bg-base-200">
     <div class="navbar bg-base-100 shadow">
-        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Imports</div>
+        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Tools</div>
         <a class="btn btn-ghost" href="/admin/">Admin</a>
     </div>
 
@@ -34,7 +34,12 @@
                 </ul>
 
                 <div class="mt-6">
-                    <a href="/d365/generate-all/" class="btn btn-primary">Open D365 Generator</a>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="/d365/generate-all/" class="btn btn-primary">All Sections Generator</a>
+                        <a href="/d365/generate/heater/" class="btn btn-accent">Heater Only</a>
+                        <a href="/d365/generate/tank/" class="btn btn-accent">Tank Only</a>
+                        <a href="/d365/generate/pump/" class="btn btn-accent">Pump Only</a>
+                    </div>
                 </div>
             </div>
         </div>
