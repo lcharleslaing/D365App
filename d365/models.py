@@ -19,6 +19,7 @@ class D365Heater(models.Model):
     heater_diameter = models.IntegerField()
     heater_height = models.FloatField()
     stack_diameter = models.IntegerField()
+    stack_height = models.FloatField(blank=True, null=True)
 
     flange_inlet = models.FloatField()
     heater_model = models.CharField(max_length=32)

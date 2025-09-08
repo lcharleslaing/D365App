@@ -116,12 +116,14 @@ def generate_all(request: HttpRequest) -> HttpResponse:
             hand = request.POST.get('heater_hand')
             if None not in (hd, hh, sd, fi, gts, btu) and all([model, material, mount, hand]):
                 heater_dash = request.POST.get('heater_dash_number') or None
+                stack_height = to_float('stack_height')
                 heater = D365Heater.objects.create(
                     job_number=job_number,
                     dash_number=heater_dash,
                     heater_diameter=hd,
                     heater_height=hh,
                     stack_diameter=sd,
+                    stack_height=stack_height,
                     flange_inlet=fi,
                     heater_model=model,
                     material=material,
@@ -132,11 +134,10 @@ def generate_all(request: HttpRequest) -> HttpResponse:
                     heater_ab=(request.POST.get('heater_ab') or ''),
                     heater_single_dual=(request.POST.get('heater_single_dual') or 'S'),
                 )
-                stack_height = to_float('stack_height')
                 context['heater_items'] = _format_items(
                     job_number,
                     heater.dash_number or '01',
-                    _build_heater_rows(heater, stack_height),
+                    _build_heater_rows(heater, heater.stack_height),
                 )
                 context['heater_initial'] = heater
                 context['heater_dash_value'] = heater_dash or (heater.dash_number or '01')
@@ -274,12 +275,14 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
             hand = request.POST.get('heater_hand')
             if None not in (hd, hh, sd, fi, gts, btu) and all([model, material, mount, hand]):
                 heater_dash = request.POST.get('heater_dash_number') or None
+                stack_height = to_float('stack_height')
                 heater = D365Heater.objects.create(
                     job_number=job_number,
                     dash_number=heater_dash,
                     heater_diameter=hd,
                     heater_height=hh,
                     stack_diameter=sd,
+                    stack_height=stack_height,
                     flange_inlet=fi,
                     heater_model=model,
                     material=material,
@@ -290,9 +293,8 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
                     heater_ab=(request.POST.get('heater_ab') or ''),
                     heater_single_dual=(request.POST.get('heater_single_dual') or 'S'),
                 )
-                stack_height = to_float('stack_height')
                 context['heater_items'] = _format_items(
-                    job_number, heater_dash or '01', _build_heater_rows(heater, stack_height)
+                    job_number, heater_dash or '01', _build_heater_rows(heater, heater.stack_height)
                 )
                 context['heater_initial'] = heater
                 context['heater_dash_value'] = heater_dash or '01'
@@ -465,12 +467,14 @@ def generate_section(request: HttpRequest, section: str) -> HttpResponse:
             hand = request.POST.get('heater_hand')
             if None not in (hd, hh, sd, fi, gts, btu) and all([model, material, mount, hand]):
                 heater_dash = request.POST.get('heater_dash_number') or None
+                stack_height = to_float('stack_height')
                 heater = D365Heater.objects.create(
                     job_number=job_number,
                     dash_number=heater_dash,
                     heater_diameter=hd,
                     heater_height=hh,
                     stack_diameter=sd,
+                    stack_height=stack_height,
                     flange_inlet=fi,
                     heater_model=model,
                     material=material,
@@ -481,9 +485,8 @@ def generate_section(request: HttpRequest, section: str) -> HttpResponse:
                     heater_ab=(request.POST.get('heater_ab') or ''),
                     heater_single_dual=(request.POST.get('heater_single_dual') or 'S'),
                 )
-                stack_height = to_float('stack_height')
                 context['heater_items'] = _format_items(
-                    job_number, heater_dash or '01', _build_heater_rows(heater, stack_height)
+                    job_number, heater_dash or '01', _build_heater_rows(heater, heater.stack_height)
                 )
                 context['heater_initial'] = heater
                 context['heater_dash_value'] = heater_dash or '01'
@@ -493,6 +496,7 @@ def generate_section(request: HttpRequest, section: str) -> HttpResponse:
                     'heater_diameter': hd,
                     'heater_height': hh,
                     'stack_diameter': sd,
+                    'stack_height': to_float('stack_height'),
                     'flange_inlet': fi,
                     'heater_model': model,
                     'material': material,
@@ -656,7 +660,7 @@ def print_job(request: HttpRequest, job_number: str) -> HttpResponse:
     pump_items = []
     
     if 'heater' in selected_sections and heater:
-        heater_items = _format_items(job_number, heater.dash_number or '01', _build_heater_rows(heater, None))
+        heater_items = _format_items(job_number, heater.dash_number or '01', _build_heater_rows(heater, heater.stack_height))
     
     if 'tank' in selected_sections and tank:
         tank_items = _format_items(job_number, tank.dash_number or '01', _build_tank_rows(tank))
@@ -691,7 +695,7 @@ def _job_payload(job: D365Job) -> JsonResponse:
     pump_items = []
     
     if heater:
-        heater_items = _format_items(job_number, heater.dash_number or '01', _build_heater_rows(heater, None))
+        heater_items = _format_items(job_number, heater.dash_number or '01', _build_heater_rows(heater, heater.stack_height))
     
     if tank:
         tank_items = _format_items(job_number, tank.dash_number or '01', _build_tank_rows(tank))

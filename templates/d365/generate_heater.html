@@ -117,7 +117,7 @@
                                 <select name="stack_height" class="select select-bordered">
                                     <option value="">Select Height</option>
                                     {% for height in stack_heights %}
-                                    <option value="{{ height.height_ft }}">{{ height.height_ft }}"</option>
+                                    <option value="{{ height.height_ft }}" {% if heater_initial and heater_initial.stack_height == height.height_ft %}selected{% endif %}>{{ height.height_ft }}"</option>
                                     {% endfor %}
                                 </select>
                             </label>

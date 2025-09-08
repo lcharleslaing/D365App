@@ -287,7 +287,7 @@
                                 <div class="label"><span class="label-text">Stack Height (ft)</span></div>
                                 <select name="stack_height" class="select select-bordered">
                                     <option value="">—</option>
-                                    {% for x in stack_heights %}<option value="{{ x.height_ft }}">{{ x.height_ft }}</option>{% endfor %}
+                                    {% for x in stack_heights %}<option value="{{ x.height_ft }}" {% if heater_initial and heater_initial.stack_height == x.height_ft %}selected{% endif %}>{{ x.height_ft }}</option>{% endfor %}
                                 </select>
                             </label>
                             <label class="form-control">
@@ -390,6 +390,10 @@
                                     {% for x in tank_heights %}<option value="{{ x.height_ft }}" {% if tank_initial and tank_initial.tank_height == x.height_ft %}selected{% endif %}>{{ x.height_ft }}</option>{% endfor %}
                                 </select>
                             </label>
+                            <label class="form-control">
+                                <div class="label"><span class="label-text">Tank Inches</span></div>
+                                <input name="tank_inches" type="number" step="0.01" value="{{ tank_initial.tank_inches|default:'' }}" class="input input-bordered" placeholder="Tank height in inches" />
+                            </label>
                             <div class="md:col-span-3"><button class="btn btn-primary">Generate Tank</button></div>
                         </form>
 
@@ -463,9 +467,9 @@
                             <label class="form-control">
                                 <div class="label"><span class="label-text">Skid L/W/H (in)</span></div>
                                 <div class="join">
-                                    <input name="skid_length" class="input input-bordered join-item" placeholder="L" />
-                                    <input name="skid_width" class="input input-bordered join-item" placeholder="W" />
-                                    <input name="skid_height" class="input input-bordered join-item" placeholder="H" />
+                                    <input name="skid_length" value="{{ pump_initial.skid_length|default:'' }}" class="input input-bordered join-item" placeholder="L" />
+                                    <input name="skid_width" value="{{ pump_initial.skid_width|default:'' }}" class="input input-bordered join-item" placeholder="W" />
+                                    <input name="skid_height" value="{{ pump_initial.skid_height|default:'' }}" class="input input-bordered join-item" placeholder="H" />
                                 </div>
                             </label>
                             <div class="md:col-span-3"><button class="btn btn-primary">Generate Pump</button></div>
