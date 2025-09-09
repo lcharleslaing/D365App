@@ -3,7 +3,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from .models import (
-    D365Job, D365Heater, D365Tank, D365Pump,
+    D365Job, D365Heater, D365Tank, D365Pump, D365GeneratedItem,
     HeaterMaterial, HeaterDiameter, HeaterHeight, StackDiameter, StackHeight,
     FlangeInlet, HeaterModelRef, GasTrainSize, GasTrainMount, BTURating,
     HeaterHandRef, HeaterABRef,
@@ -12,6 +12,43 @@ from .models import (
 )
 from .excel import read_workbook_outputs
 from pathlib import Path
+
+
+def save_generated_items(job_number: str, section: str, items: list[dict]):
+    """Save generated items to database, replacing existing ones for this job/section"""
+    # Delete existing items for this job/section
+    D365GeneratedItem.objects.filter(job_number=job_number, section=section).delete()
+    
+    # Save new items
+    for item in items:
+        D365GeneratedItem.objects.create(
+            job_number=job_number,
+            section=section,
+            item_number=item['item_number'],
+            description=item['description'],
+            bom=item['bom'],
+            template=item['template'],
+            product_type=item['product_type']
+        )
+
+
+def load_generated_items(job_number: str) -> dict:
+    """Load generated items for a job, organized by section"""
+    items = D365GeneratedItem.objects.filter(job_number=job_number)
+    result = {'heater_items': [], 'tank_items': [], 'pump_items': []}
+    
+    for item in items:
+        section_items = result.get(f'{item.section}_items', [])
+        section_items.append({
+            'item_number': item.item_number,
+            'description': item.description,
+            'bom': item.bom,
+            'template': item.template,
+            'product_type': item.product_type
+        })
+        result[f'{item.section}_items'] = section_items
+    
+    return result
 
 
 @login_required
@@ -75,10 +112,24 @@ def generate_all(request: HttpRequest) -> HttpResponse:
         # Get selected sections from session or default to all
         selected_sections = request.session.get('selected_sections', ['heater', 'tank', 'pump'])
         context['selected_sections'] = selected_sections
+        
+        # Load existing generated items if job is specified
+        if job_q:
+            generated_items = load_generated_items(job_q)
+            context.update(generated_items)
 
     if request.method == 'POST':
         job_number = request.POST.get('job_number', '').strip()
         job_name = request.POST.get('job_name', '').strip() or None
+        
+        # Validate required fields
+        if not job_number:
+            context['error'] = 'Job Number is required'
+            return render(request, 'd365/generate.html', context)
+        if not job_name:
+            context['error'] = 'Job Name is required'
+            return render(request, 'd365/generate.html', context)
+        
         if job_number:
             D365Job.objects.update_or_create(job_number=job_number, defaults={'job_name': job_name})
         
@@ -134,13 +185,17 @@ def generate_all(request: HttpRequest) -> HttpResponse:
                     heater_ab=(request.POST.get('heater_ab') or ''),
                     heater_single_dual=(request.POST.get('heater_single_dual') or 'S'),
                 )
-                context['heater_items'] = _format_items(
+                heater_items = _format_items(
                     job_number,
                     heater.dash_number or '01',
                     _build_heater_rows(heater, heater.stack_height),
                 )
+                context['heater_items'] = heater_items
                 context['heater_initial'] = heater
                 context['heater_dash_value'] = heater_dash or (heater.dash_number or '01')
+                
+                # Save generated items
+                save_generated_items(job_number, 'heater', heater_items)
 
         # Tank
         if request.POST.get('tank_submit') == '1' or request.POST.get('generate_all') == '1':
@@ -161,13 +216,17 @@ def generate_all(request: HttpRequest) -> HttpResponse:
                     material=material,
                     tank_type=ttype,
                 )
-                context['tank_items'] = _format_items(
+                tank_items = _format_items(
                     job_number,
                     tank.dash_number or '01',
                     _build_tank_rows(tank),
                 )
+                context['tank_items'] = tank_items
                 context['tank_initial'] = tank
                 context['tank_dash_value'] = tank_dash or (tank.dash_number or '01')
+                
+                # Save generated items
+                save_generated_items(job_number, 'tank', tank_items)
 
         # Pump
         if request.POST.get('pump_submit') == '1' or request.POST.get('generate_all') == '1':
@@ -193,16 +252,23 @@ def generate_all(request: HttpRequest) -> HttpResponse:
                     skid_width=sw,
                     skid_height=sh,
                 )
-                context['pump_items'] = _format_items(
+                pump_items = _format_items(
                     job_number,
                     pump.dash_number or '01',
                     _build_pump_rows(pump),
                 )
+                context['pump_items'] = pump_items
                 context['pump_initial'] = pump
                 context['pump_dash_value'] = pump_dash or (pump.dash_number or '01')
+                
+                # Save generated items
+                save_generated_items(job_number, 'pump', pump_items)
 
         context['job_number'] = job_number
         context['job_name'] = job_name
+        
+        # Redirect to the new job URL to show the generated items
+        return redirect(f'/d365/generate-all/?job={job_number}')
 
     return render(request, 'd365/generate.html', context)
 
@@ -240,10 +306,25 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
     }
 
     context: dict = {'jobs': jobs, **ref, 'selected_sections': selected_sections}
+    
+    # Load existing generated items if job is specified
+    job_q = request.GET.get('job')
+    if job_q:
+        generated_items = load_generated_items(job_q)
+        context.update(generated_items)
 
     if request.method == 'POST':
         job_number = request.POST.get('job_number', '').strip()
         job_name = request.POST.get('job_name', '').strip() or None
+        
+        # Validate required fields
+        if not job_number:
+            context['error'] = 'Job Number is required'
+            return render(request, 'd365/generate.html', context)
+        if not job_name:
+            context['error'] = 'Job Name is required'
+            return render(request, 'd365/generate.html', context)
+        
         if job_number:
             D365Job.objects.update_or_create(job_number=job_number, defaults={'job_name': job_name})
 
@@ -293,11 +374,15 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
                     heater_ab=(request.POST.get('heater_ab') or ''),
                     heater_single_dual=(request.POST.get('heater_single_dual') or 'S'),
                 )
-                context['heater_items'] = _format_items(
+                heater_items = _format_items(
                     job_number, heater_dash or '01', _build_heater_rows(heater, heater.stack_height)
                 )
+                context['heater_items'] = heater_items
                 context['heater_initial'] = heater
                 context['heater_dash_value'] = heater_dash or '01'
+                
+                # Save generated items
+                save_generated_items(job_number, 'heater', heater_items)
 
         if 'tank' in selected_sections and (request.POST.get('tank_submit') == '1' or request.POST.get('generate_selected') == '1'):
             td = to_int('tank_diameter')
@@ -316,9 +401,13 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
                     material=material,
                     tank_type=tank_type,
                 )
-                context['tank_items'] = _format_items(job_number, tank_dash or '01', _build_tank_rows(tank))
+                tank_items = _format_items(job_number, tank_dash or '01', _build_tank_rows(tank))
+                context['tank_items'] = tank_items
                 context['tank_initial'] = tank
                 context['tank_dash_value'] = tank_dash or '01'
+                
+                # Save generated items
+                save_generated_items(job_number, 'tank', tank_items)
 
         if 'pump' in selected_sections and (request.POST.get('pump_submit') == '1' or request.POST.get('generate_selected') == '1'):
             pump_type = request.POST.get('pump_type')
@@ -343,12 +432,19 @@ def generate_selected(request: HttpRequest) -> HttpResponse:
                     skid_width=sw,
                     skid_height=sh,
                 )
-                context['pump_items'] = _format_items(job_number, pump_dash or '01', _build_pump_rows(pump))
+                pump_items = _format_items(job_number, pump_dash or '01', _build_pump_rows(pump))
+                context['pump_items'] = pump_items
                 context['pump_initial'] = pump
                 context['pump_dash_value'] = pump_dash or '01'
+                
+                # Save generated items
+                save_generated_items(job_number, 'pump', pump_items)
 
         context['job_number'] = job_number
         context['job_name'] = job_name
+        
+        # Redirect to the new job URL to show the generated items
+        return redirect(f'/d365/generate-all/?job={job_number}')
 
     return render(request, 'd365/generate.html', context)
 
@@ -565,9 +661,13 @@ def generate_section(request: HttpRequest, section: str) -> HttpResponse:
                     skid_width=sw,
                     skid_height=sh,
                 )
-                context['pump_items'] = _format_items(job_number, pump_dash or '01', _build_pump_rows(pump))
+                pump_items = _format_items(job_number, pump_dash or '01', _build_pump_rows(pump))
+                context['pump_items'] = pump_items
                 context['pump_initial'] = pump
                 context['pump_dash_value'] = pump_dash or '01'
+                
+                # Save generated items
+                save_generated_items(job_number, 'pump', pump_items)
             else:
                 # If validation failed, preserve form data
                 context['pump_initial'] = type('obj', (object,), {

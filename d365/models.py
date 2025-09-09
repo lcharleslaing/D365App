@@ -452,4 +452,22 @@ class Horsepower(models.Model):
         return f"{self.hp}"
 
 
+class D365GeneratedItem(models.Model):
+    job_number = models.CharField(max_length=64)
+    section = models.CharField(max_length=16)  # 'heater', 'tank', 'pump'
+    item_number = models.CharField(max_length=128)
+    description = models.CharField(max_length=255)
+    bom = models.CharField(max_length=64)
+    template = models.CharField(max_length=64)
+    product_type = models.CharField(max_length=64)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        ordering = ['job_number', 'section', 'item_number']
+        unique_together = ['job_number', 'section', 'item_number']
+    
+    def __str__(self) -> str:
+        return f"{self.job_number} - {self.section} - {self.item_number}"
+
+
 # Create your models here.

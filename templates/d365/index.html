@@ -8,38 +8,131 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
 </head>
 <body class="min-h-screen bg-base-200">
-    <div class="navbar bg-base-100 shadow">
-        <div class="flex-1 px-4 text-xl font-bold">Kemco D365 Tools</div>
-        <a class="btn btn-ghost" href="/admin/">Admin</a>
-    </div>
+    {% include 'includes/navbar.html' %}
 
-    <div class="container mx-auto p-4">
-        <div class="card bg-base-100 shadow">
+    <div class="container mx-auto p-6 max-w-6xl">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-base-content mb-2">D365 Job Management</h1>
+            <p class="text-base-content/70 text-lg">Manage and generate D365 import data for your projects</p>
+        </div>
+
+        <!-- Jobs Section -->
+        <div class="card bg-base-100 shadow-xl mb-8">
             <div class="card-body">
-                <h2 class="card-title">Jobs</h2>
-                <ul class="list-none pl-0">
-                    {% for job in jobs %}
-                    <li class="flex items-center gap-3 py-1">
-                        <a class="btn btn-sm btn-ghost font-mono" href="/d365/generate-all/?job={{ job.job_number }}">{{ job.job_number }}</a>
-                        <span class="opacity-70">{{ job.job_name }}</span>
-                        <a class="link link-primary" href="/d365/print/{{ job.job_number }}/">Print</a>
-                        <form method="post" action="/d365/delete-job/{{ job.id }}/" class="inline ml-2" onsubmit="return confirm('Delete job {{ job.job_number }}? This cannot be undone.');">
-                            {% csrf_token %}
-                            <button class="btn btn-xs btn-error">Delete</button>
-                        </form>
-                    </li>
-                    {% empty %}
-                    <li>No jobs yet.</li>
-                    {% endfor %}
-                </ul>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="card-title text-2xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Active Jobs
+                    </h2>
+                    <div class="badge badge-primary badge-lg">{{ jobs|length }} job{{ jobs|length|pluralize }}</div>
+                </div>
+                
+                {% if jobs %}
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-base font-semibold">Job Number</th>
+                                <th class="text-base font-semibold">Job Name</th>
+                                <th class="text-base font-semibold">Created</th>
+                                <th class="text-base font-semibold">Modified</th>
+                                <th class="text-base font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                            <tr class="hover">
+                                <td>
+                                    <a class="btn btn-sm btn-outline font-mono" href="/d365/generate-all/?job={{ job.job_number }}">
+                                        {{ job.job_number }}
+                                    </a>
+                                </td>
+                                <td class="font-medium">{{ job.job_name }}</td>
+                                <td class="text-sm text-base-content/70">
+                                    <div class="flex flex-col">
+                                        <span>{{ job.created_at|date:"M d, Y" }}</span>
+                                        <span class="text-xs">{{ job.created_at|time:"g:i A" }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-sm text-base-content/70">
+                                    <div class="flex flex-col">
+                                        <span>{{ job.updated_at|date:"M d, Y" }}</span>
+                                        <span class="text-xs">{{ job.updated_at|time:"g:i A" }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex gap-2">
+                                        <a class="btn btn-sm btn-primary" href="/d365/print/{{ job.job_number }}/">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                            </svg>
+                                            Print
+                                        </a>
+                                        <form method="post" action="/d365/delete-job/{{ job.id }}/" class="inline" onsubmit="return confirm('Delete job {{ job.job_number }}? This cannot be undone.');">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-error">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <svg class="w-16 h-16 mx-auto text-base-content/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-base-content/70 mb-2">No jobs yet</h3>
+                    <p class="text-base-content/50">Create your first job using the generators below</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
-                <div class="mt-6">
-                    <div class="flex flex-wrap gap-4">
-                        <a href="/d365/generate-all/" class="btn btn-primary">All Sections Generator</a>
-                        <a href="/d365/generate/heater/" class="btn btn-accent">Heater Only</a>
-                        <a href="/d365/generate/tank/" class="btn btn-accent">Tank Only</a>
-                        <a href="/d365/generate/pump/" class="btn btn-accent">Pump Only</a>
-                    </div>
+        <!-- Generator Section -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-6">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                    D365 Generators
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="/d365/generate-all/" class="btn btn-primary btn-lg flex-col h-24">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <span class="text-sm">All Sections</span>
+                    </a>
+                    <a href="/d365/generate/heater/" class="btn btn-accent btn-lg flex-col h-24">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
+                        </svg>
+                        <span class="text-sm">Heater Only</span>
+                    </a>
+                    <a href="/d365/generate/tank/" class="btn btn-accent btn-lg flex-col h-24">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        <span class="text-sm">Tank Only</span>
+                    </a>
+                    <a href="/d365/generate/pump/" class="btn btn-accent btn-lg flex-col h-24">
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span class="text-sm">Pump Only</span>
+                    </a>
                 </div>
             </div>
         </div>
