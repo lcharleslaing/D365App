@@ -188,6 +188,41 @@
         const sectionsParam = selectedSections.join(',');
         window.open(`/d365/print/${jobNumber}/?sections=${sectionsParam}`, '_blank');
     }
+    
+    // Tab switching functionality
+    function switchTab(tabIndex) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('tab-active'));
+        
+        // Hide all tab panels
+        document.querySelectorAll('.tab-content').forEach(panel => panel.style.display = 'none');
+        
+        // Activate selected tab
+        const tabs = document.querySelectorAll('.tab');
+        if (tabs[tabIndex]) {
+            tabs[tabIndex].classList.add('tab-active');
+        }
+        
+        // Show corresponding panel
+        const panels = document.querySelectorAll('.tab-content');
+        if (panels[tabIndex]) {
+            panels[tabIndex].style.display = 'block';
+        }
+    }
+    
+    // Initialize tabs on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up click handlers for tabs
+        document.querySelectorAll('.tab').forEach((tab, index) => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchTab(index);
+            });
+        });
+        
+        // Initialize with first tab active
+        switchTab(0);
+    });
     </script>
     <style>
         .label .label-text{font-weight:600}
@@ -242,8 +277,8 @@
                     </div>
                 </form>
 
-                <div role="tablist" class="tabs tabs-lifted">
-                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Import Heater" checked />
+                <div role="tablist" class="tabs">
+                    <a class="tab tab-active">Import Heater</a>
                     <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
                         <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {% csrf_token %}
@@ -356,7 +391,7 @@
                         {% endif %}
                     </div>
 
-                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Import Tank" />
+                    <a class="tab">Import Tank</a>
                     <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
                         <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {% csrf_token %}
@@ -424,7 +459,7 @@
                         {% endif %}
                     </div>
 
-                    <input type="radio" name="tabs" role="tab" class="tab" aria-label="Pump" />
+                    <a class="tab">Import Pump</a>
                     <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
                         <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {% csrf_token %}

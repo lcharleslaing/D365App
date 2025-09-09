@@ -750,7 +750,7 @@ def _format_items(job_number: str, dash: str, items: list[dict]) -> list[dict]:
             # Allow special override like '-A' for certain rows (e.g., Tank precut)
             suffix = row.get('override_suffix')
             if suffix:
-                item_number = f"{job_number}-{dash}-{suffix}"
+                item_number = f"{job_number}-{dash}.1-{suffix}"
             else:
                 # Excel formula: =CONCATENATE($I$2,"-",$I$3,".1") for sub-items
                 item_number = f"{job_number}-{dash}.{seq}"
