@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from import_export import admin as import_export_admin
-from .models import Part
+from .models import Part, SearchHistory
 from .resources import PartResource
 
 
@@ -69,3 +69,44 @@ class PartAdmin(import_export_admin.ImportExportModelAdmin):
             f"Successfully refreshed search vectors for {updated} parts."
         )
     refresh_search_vectors.short_description = "Refresh search vectors"
+
+
+@admin.register(SearchHistory)
+class SearchHistoryAdmin(admin.ModelAdmin):
+    list_display = ['query', 'columns_display', 'result_count', 'created_at', 'user_session']
+    list_filter = ['created_at', 'result_count']
+    search_fields = ['query', 'user_session']
+    readonly_fields = ['created_at']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Search Details', {
+            'fields': ('query', 'columns', 'result_count')
+        }),
+        ('Session Information', {
+            'fields': ('user_session', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Optimize queryset for admin"""
+        return super().get_queryset(request)
+    
+    actions = ['clear_old_history']
+    
+    def clear_old_history(self, request, queryset):
+        """Clear search history older than 30 days"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        cutoff_date = timezone.now() - timedelta(days=30)
+        old_history = SearchHistory.objects.filter(created_at__lt=cutoff_date)
+        count = old_history.count()
+        old_history.delete()
+        
+        self.message_user(
+            request,
+            f"Successfully deleted {count} old search history entries."
+        )
+    clear_old_history.short_description = "Clear old history (30+ days)"

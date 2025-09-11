@@ -32,13 +32,23 @@
                 </div>
             </div>
 
-            <!-- Placeholder for future tools -->
-            <div class="card bg-base-100 shadow-xl opacity-50">
+            <!-- Parts Search Tool -->
+            <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
-                    <h2 class="card-title text-secondary">Coming Soon</h2>
-                    <p>Additional tools and utilities will be added here as they are developed.</p>
+                    <h2 class="card-title text-primary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Parts Search
+                    </h2>
+                    <p>Search and discover parts from Dynamics 365 with advanced filtering and wildcard support.</p>
                     <div class="card-actions justify-end">
-                        <button class="btn btn-secondary" disabled>Coming Soon</button>
+                        <a href="{% url 'dynamics_search:search' %}" class="btn btn-primary">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search Parts
+                        </a>
                     </div>
                 </div>
             </div>

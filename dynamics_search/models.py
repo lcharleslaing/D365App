@@ -71,3 +71,40 @@ class Part(models.Model):
         import hashlib
         content = f"{self.description}|{self.size}|{self.product_group_id}|{self.unit_cost}|{self.vendor_name}|{self.vendor_product_number}|{self.vendor_product_description}"
         return hashlib.md5(content.encode()).hexdigest()
+
+
+class SearchHistory(models.Model):
+    """Store user search history for quick access"""
+    id = models.AutoField(primary_key=True)
+    query = models.CharField(max_length=255)
+    columns = models.JSONField(default=list, blank=True)  # List of selected columns
+    result_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user_session = models.CharField(max_length=100, blank=True)  # Simple session tracking
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['user_session']),
+        ]
+    
+    def __str__(self):
+        columns_str = ', '.join(self.columns) if self.columns else 'All'
+        return f"{self.query} ({columns_str}) - {self.result_count} results"
+    
+    @property
+    def columns_display(self):
+        """Return formatted columns for display"""
+        if not self.columns:
+            return "All Columns"
+        
+        column_names = {
+            'item_number': 'Item Number',
+            'description': 'Description', 
+            'size': 'Size',
+            'vendor_name': 'Vendor Name',
+            'product_group_id': 'Product Group ID'
+        }
+        
+        return ', '.join([column_names.get(col, col) for col in self.columns])

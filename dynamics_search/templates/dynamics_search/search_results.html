@@ -15,9 +15,6 @@
                 class="btn btn-outline btn-sm"
                 onclick="exportResults()"
             >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
                 Export
             </button>
         </div>
@@ -25,6 +22,7 @@
 
     <!-- Results List -->
     <div id="results-list" class="space-y-4">
+        {% if results %}
         {% for part in results %}
         <div class="collapse collapse-arrow bg-base-100 shadow-md hover:shadow-lg transition-shadow mb-2">
             <input type="checkbox" class="collapse-toggle" />
@@ -46,37 +44,57 @@
                         <label class="label">
                             <span class="label-text font-semibold">Item Number</span>
                         </label>
-                        <div class="text-sm">{{ part.item_number }}</div>
+                        <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboard('{{ part.item_number|escapejs }}', this)">
+                            {{ part.item_number }}
+                        </button>
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-semibold">Description</span>
                         </label>
-                        <div class="text-sm">{{ part.description|default:"No description" }}</div>
+                        {% if part.description %}
+                            <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboardWildcard('{{ part.description|escapejs }}', this)">
+                                {{ part.description|truncatechars:50 }}
+                            </button>
+                        {% else %}
+                            <div class="badge badge-error text-white">EMPTY</div>
+                        {% endif %}
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-semibold">Size</span>
                         </label>
-                        <div class="text-sm">{{ part.size|default:"No size" }}</div>
+                        {% if part.size %}
+                            <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboard('{{ part.size|escapejs }}', this)">
+                                {{ part.size }}
+                            </button>
+                        {% else %}
+                            <div class="badge badge-error text-white">EMPTY</div>
+                        {% endif %}
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-semibold">Vendor Name</span>
                         </label>
-                        <div class="text-sm">{{ part.vendor_name|default:"N/A" }}</div>
+                        {% if part.vendor_name %}
+                            <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboard('{{ part.vendor_name|escapejs }}', this)">
+                                {{ part.vendor_name|truncatechars:30 }}
+                            </button>
+                        {% else %}
+                            <div class="badge badge-error text-white">EMPTY</div>
+                        {% endif %}
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text font-semibold">Unit Cost</span>
                         </label>
-                        <div class="text-sm">
-                            {% if part.unit_cost %}
+                        {% if part.unit_cost %}
+                            <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboard('${{ part.unit_cost|floatformat:2 }}', this)">
                                 ${{ part.unit_cost|floatformat:2 }}
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </div>
+                            </button>
+                        {% else %}
+                            <div class="badge badge-error text-white">EMPTY</div>
+                        {% endif %}
                     </div>
                     <div class="form-control">
                         <label class="label">
@@ -86,35 +104,42 @@
                     </div>
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text font-semibold">Similarity Score</span>
+                            <span class="label-text font-semibold">Product Group ID</span>
                         </label>
-                        <div class="text-sm">{{ part.similarity|floatformat:0 }}% match</div>
+                        {% if part.product_group_id %}
+                            <button class="btn btn-outline btn-sm w-full justify-start" onclick="copyToClipboard('{{ part.product_group_id|escapejs }}', this)">
+                                {{ part.product_group_id }}
+                            </button>
+                        {% else %}
+                            <div class="badge badge-error text-white">EMPTY</div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 p-4 border-t">
                     <button 
                         class="btn btn-ghost btn-sm"
-                        onclick="copyToClipboard('{{ part.item_number }}')"
+                        onclick="copyToClipboard('{{ part.item_number|escapejs }}')"
                     >
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
                         Copy Item Number
                     </button>
                     <button 
                         class="btn btn-primary btn-sm"
-                        onclick="viewDetails({{ part.id }})"
+                        onclick="viewDetails({{ part.id|escapejs }})"
                     >
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>
                         View Full Details
                     </button>
                 </div>
             </div>
         </div>
         {% endfor %}
+        {% else %}
+        <!-- No Results -->
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">😔</div>
+            <h3 class="text-xl font-semibold text-base-content/70 mb-2">No parts found</h3>
+            <p class="text-base-content/50">Try adjusting your search terms or using wildcards</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Pagination -->
@@ -122,47 +147,58 @@
     <div class="flex justify-center mt-8">
         <div class="join">
             {% if has_previous %}
-                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"-1" }})">Previous</button>
+                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"-1"|escapejs }})">Previous</button>
             {% endif %}
             
             <span class="join-item btn btn-active">{{ page }} of {{ total_pages }}</span>
             
             {% if has_next %}
-                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"1" }})">Next</button>
+                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"1"|escapejs }})">Next</button>
             {% endif %}
         </div>
     </div>
     {% endif %}
 
-    <!-- No Results -->
-    {% if total == 0 %}
-    <div class="text-center py-12">
-        <div class="text-6xl mb-4">😔</div>
-        <h3 class="text-xl font-semibold text-base-content/70 mb-2">No parts found</h3>
-        <p class="text-base-content/50">Try adjusting your search terms or using wildcards</p>
-    </div>
-    {% endif %}
 </div>
 
 <script>
 // Store current results for export functionality
 window.currentResults = {{ results|safe }};
-window.currentQuery = "{{ query }}";
+window.currentQuery = "{{ query|escapejs }}";
 
 // Copy to clipboard function
-function copyToClipboard(text) {
+function copyToClipboard(text, button) {
     navigator.clipboard.writeText(text).then(() => {
         // Show success feedback
-        const button = event.target.closest('button');
         const originalText = button.innerHTML;
-        button.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+        button.innerHTML = 'Copied!';
         button.classList.add('btn-success');
-        button.classList.remove('btn-ghost');
+        button.classList.remove('btn-outline');
         
         setTimeout(() => {
             button.innerHTML = originalText;
             button.classList.remove('btn-success');
-            button.classList.add('btn-ghost');
+            button.classList.add('btn-outline');
+        }, 2000);
+    });
+}
+
+// Copy to clipboard with wildcard formatting function
+function copyToClipboardWildcard(text, button) {
+    // Convert text to wildcard format by removing punctuation and adding * between words
+    const wildcardText = '*' + text.replace(/[,\s]+/g, '*') + '*';
+    
+    navigator.clipboard.writeText(wildcardText).then(() => {
+        // Show success feedback
+        const originalText = button.innerHTML;
+        button.innerHTML = 'Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline');
         }, 2000);
     });
 }
@@ -172,44 +208,106 @@ function viewDetails(partId) {
     window.open(`/search/part/${partId}/`, '_blank');
 }
 
-// Export results function
-function exportResults() {
-    if (!window.currentResults || window.currentResults.length === 0) return;
-    
-    const csvContent = [
-        ['Item Number', 'Description', 'Size', 'Vendor', 'Cost', 'Last Updated', 'Similarity'],
-        ...window.currentResults.map(part => [
-            part.item_number,
-            part.description || '',
-            part.size || '',
-            part.vendor_name || '',
-            part.unit_cost ? `$${parseFloat(part.unit_cost).toFixed(2)}` : '',
-            new Date(part.last_updated).toLocaleDateString(),
-            `${Math.round(part.similarity * 100)}%`
-        ])
-    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `parts_search_${window.currentQuery.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
-// Search page function for pagination
+// Search page function
 function searchPage(page) {
     const searchInput = document.getElementById('search-input');
-    const currentQuery = searchInput.value;
-    const url = new URL(window.location.origin + '/search/api/');
-    url.searchParams.set('q', currentQuery);
-    url.searchParams.set('page', page);
+    const query = searchInput.value.trim();
+    const activeFilters = Array.from(window.activeFilters || new Set());
     
-    fetch(url)
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('search-results').innerHTML = html;
+    if (query) {
+        const url = searchInput.getAttribute('hx-get');
+        const params = {
+            q: query,
+            columns: activeFilters,
+            page: page
+        };
+        
+        // Use HTMX to get HTML response, not JSON
+        htmx.ajax('GET', url, {
+            values: params,
+            target: '#search-results',
+            headers: {
+                'HX-Request': 'true'
+            }
+        });
+    }
+}
+
+// Export results function
+function exportResults() {
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput.value.trim();
+    const activeFilters = Array.from(window.activeFilters || new Set());
+    
+    if (!query) return;
+    
+    // Show loading state
+    const exportBtn = document.getElementById('export-btn');
+    const originalText = exportBtn.innerHTML;
+    exportBtn.innerHTML = 'Exporting...';
+    exportBtn.disabled = true;
+    
+    // Fetch all results for export
+    const url = searchInput.getAttribute('hx-get');
+    const params = {
+        q: query,
+        columns: activeFilters,
+        page: 1,
+        per_page: 10000  // Large number to get all results
+    };
+    
+    // Create URL with parameters
+    const exportUrl = new URL(url, window.location.origin);
+    Object.keys(params).forEach(key => {
+        if (Array.isArray(params[key])) {
+            params[key].forEach(value => exportUrl.searchParams.append(key, value));
+        } else {
+            exportUrl.searchParams.set(key, params[key]);
+        }
+    });
+    
+    fetch(exportUrl, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.results && data.results.length > 0) {
+                const csvContent = [
+                    ['Item Number', 'Description', 'Size', 'Vendor Name', 'Unit Cost', 'Unit Cost Date', 'Vendor Product Number', 'Vendor Product Description', 'Vendor Phone', 'Product Group ID', 'Last Updated'],
+                    ...data.results.map(part => [
+                        part.item_number || '',
+                        part.description || '',
+                        part.size || '',
+                        part.vendor_name || '',
+                        part.unit_cost ? `$${parseFloat(part.unit_cost).toFixed(2)}` : '',
+                        part.unit_cost_date ? new Date(part.unit_cost_date).toLocaleDateString() : '',
+                        part.vendor_product_number || '',
+                        part.vendor_product_description || '',
+                        part.vendor_phone || '',
+                        part.product_group_id || '',
+                        part.last_updated ? new Date(part.last_updated).toLocaleDateString() : ''
+                    ])
+                ].map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `parts_search_${query.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+            }
+        })
+        .catch(error => {
+            console.error('Export failed:', error);
+            alert('Export failed. Please try again.');
+        })
+        .finally(() => {
+            // Reset button state
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
         });
 }
 </script>
