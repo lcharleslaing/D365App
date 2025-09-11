@@ -1,0 +1,215 @@
+<!-- Search Results -->
+<div class="max-w-6xl mx-auto">
+    <!-- Results Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-base-content">
+                Search Results
+                <span class="badge badge-primary badge-lg ml-2">{{ total }}</span>
+            </h2>
+            <p class="text-base-content/70">Searching for: "{{ query }}"</p>
+        </div>
+        <div class="flex gap-2">
+            <button 
+                id="export-btn"
+                class="btn btn-outline btn-sm"
+                onclick="exportResults()"
+            >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Results List -->
+    <div id="results-list" class="space-y-4">
+        {% for part in results %}
+        <div class="collapse collapse-arrow bg-base-100 shadow-md hover:shadow-lg transition-shadow mb-2">
+            <input type="checkbox" class="collapse-toggle" />
+            <div class="collapse-title">
+                <div class="flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-lg font-bold text-primary">{{ part.item_number }}</h3>
+                            <div class="badge badge-outline">{{ part.similarity|floatformat:0 }}% match</div>
+                        </div>
+                        <p class="text-base-content/80 mt-1">{{ part.description|default:"No description" }}</p>
+                    </div>
+                    <div class="text-sm text-base-content/60">{{ part.size|default:"No size" }}</div>
+                </div>
+            </div>
+            <div class="collapse-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Item Number</span>
+                        </label>
+                        <div class="text-sm">{{ part.item_number }}</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Description</span>
+                        </label>
+                        <div class="text-sm">{{ part.description|default:"No description" }}</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Size</span>
+                        </label>
+                        <div class="text-sm">{{ part.size|default:"No size" }}</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Vendor Name</span>
+                        </label>
+                        <div class="text-sm">{{ part.vendor_name|default:"N/A" }}</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Unit Cost</span>
+                        </label>
+                        <div class="text-sm">
+                            {% if part.unit_cost %}
+                                ${{ part.unit_cost|floatformat:2 }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Last Updated</span>
+                        </label>
+                        <div class="text-sm">{{ part.last_updated|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Similarity Score</span>
+                        </label>
+                        <div class="text-sm">{{ part.similarity|floatformat:0 }}% match</div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t">
+                    <button 
+                        class="btn btn-ghost btn-sm"
+                        onclick="copyToClipboard('{{ part.item_number }}')"
+                    >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        Copy Item Number
+                    </button>
+                    <button 
+                        class="btn btn-primary btn-sm"
+                        onclick="viewDetails({{ part.id }})"
+                    >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        View Full Details
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="flex justify-center mt-8">
+        <div class="join">
+            {% if has_previous %}
+                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"-1" }})">Previous</button>
+            {% endif %}
+            
+            <span class="join-item btn btn-active">{{ page }} of {{ total_pages }}</span>
+            
+            {% if has_next %}
+                <button class="join-item btn btn-outline" onclick="searchPage({{ page|add:"1" }})">Next</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Results -->
+    {% if total == 0 %}
+    <div class="text-center py-12">
+        <div class="text-6xl mb-4">😔</div>
+        <h3 class="text-xl font-semibold text-base-content/70 mb-2">No parts found</h3>
+        <p class="text-base-content/50">Try adjusting your search terms or using wildcards</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Store current results for export functionality
+window.currentResults = {{ results|safe }};
+window.currentQuery = "{{ query }}";
+
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Show success feedback
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-ghost');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-ghost');
+        }, 2000);
+    });
+}
+
+// View details function
+function viewDetails(partId) {
+    window.open(`/search/part/${partId}/`, '_blank');
+}
+
+// Export results function
+function exportResults() {
+    if (!window.currentResults || window.currentResults.length === 0) return;
+    
+    const csvContent = [
+        ['Item Number', 'Description', 'Size', 'Vendor', 'Cost', 'Last Updated', 'Similarity'],
+        ...window.currentResults.map(part => [
+            part.item_number,
+            part.description || '',
+            part.size || '',
+            part.vendor_name || '',
+            part.unit_cost ? `$${parseFloat(part.unit_cost).toFixed(2)}` : '',
+            new Date(part.last_updated).toLocaleDateString(),
+            `${Math.round(part.similarity * 100)}%`
+        ])
+    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `parts_search_${window.currentQuery.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Search page function for pagination
+function searchPage(page) {
+    const searchInput = document.getElementById('search-input');
+    const currentQuery = searchInput.value;
+    const url = new URL(window.location.origin + '/search/api/');
+    url.searchParams.set('q', currentQuery);
+    url.searchParams.set('page', page);
+    
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('search-results').innerHTML = html;
+        });
+}
+</script>

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-+!d0m!%(czf8ud7ksk11jwu+1oon$v%s=$4@vyvf2but_+zuy9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 
 # Application definition
@@ -37,7 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'import_export',
     'd365',
+    'dynamics_search',
 ]
 
 MIDDLEWARE = [
@@ -79,6 +81,18 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# For PostgreSQL with full-text search (uncomment and configure when ready)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'kemco_portal',
+#         'USER': 'your_db_user',
+#         'PASSWORD': 'your_db_password',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 
 # Password validation
@@ -125,3 +139,19 @@ LOGIN_REDIRECT_URL = '/d365/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Dynamics 365 Configuration
+# Set these in your environment or override in local settings
+DYNAMICS_COMPANY = 'yourcompany'  # Replace with your Dynamics 365 company name
+DYNAMICS_CLIENT_ID = ''  # Azure AD Application (client) ID
+DYNAMICS_CLIENT_SECRET = ''  # Azure AD Application secret
+DYNAMICS_TENANT_ID = ''  # Azure AD Tenant ID
+
+# Search Configuration
+SEARCH_RESULTS_PER_PAGE = 20
+SEARCH_MIN_QUERY_LENGTH = 2
+
+# Import/Export Configuration
+IMPORT_EXPORT_USE_TRANSACTIONS = True
+IMPORT_EXPORT_SKIP_ADMIN_LOG = False
+IMPORT_EXPORT_CHUNK_SIZE = 1000

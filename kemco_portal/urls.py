@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
     path('d365/', include('d365.urls')),
+    path('search/', include('dynamics_search.urls')),
 ]

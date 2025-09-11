@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parts Search - Kemco Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body class="min-h-screen bg-base-200">
+    {% include 'includes/navbar.html' %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-base-content mb-4">Parts Search</h1>
+        <p class="text-lg text-base-content/70">Search and discover parts from Dynamics 365</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="max-w-4xl mx-auto mb-8">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <!-- Search Column Filters -->
+                <div class="mb-4">
+                    <label class="label">
+                        <span class="label-text text-lg font-semibold">Search In Columns</span>
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <button 
+                            class="btn btn-outline btn-sm search-filter-btn" 
+                            data-column="item_number"
+                            onclick="toggleSearchFilter(this)"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                            </svg>
+                            Item Number
+                        </button>
+                        <button 
+                            class="btn btn-outline btn-sm search-filter-btn" 
+                            data-column="description"
+                            onclick="toggleSearchFilter(this)"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Description
+                        </button>
+                        <button 
+                            class="btn btn-outline btn-sm search-filter-btn" 
+                            data-column="size"
+                            onclick="toggleSearchFilter(this)"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                            </svg>
+                            Size
+                        </button>
+                        <button 
+                            class="btn btn-outline btn-sm search-filter-btn" 
+                            data-column="vendor_name"
+                            onclick="toggleSearchFilter(this)"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            Vendor Name
+                        </button>
+                        <button 
+                            class="btn btn-ghost btn-sm" 
+                            onclick="clearAllFilters()"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear All
+                        </button>
+                    </div>
+                    <div class="label">
+                        <span class="label-text-alt">Select columns to search in. If none selected, searches all columns.</span>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text text-lg font-semibold">Search Parts</span>
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            placeholder="Enter search term or use wildcards (e.g., %hose%, *valve*)"
+                            class="input input-bordered input-lg w-full pr-12"
+                            hx-get="{% url 'dynamics_search:search_api' %}"
+                            hx-trigger="keyup changed delay:300ms"
+                            hx-target="#search-results"
+                            hx-indicator="#search-spinner"
+                            hx-vals="js:{columns: Array.from(activeFilters)}"
+                            name="q"
+                        />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div id="search-spinner" class="loading loading-spinner loading-sm htmx-indicator"></div>
+                        </div>
+                    </div>
+                    <div class="label">
+                        <span class="label-text-alt">Use % for wildcards (e.g., %hose% finds all parts containing 'hose')</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="search-results" class="max-w-6xl mx-auto">
+        <!-- Initial empty state -->
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold text-base-content/70 mb-2">Start searching for parts</h3>
+            <p class="text-base-content/50">Enter a part number, description, or use wildcards to find what you're looking for</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables for search state
+let activeFilters = new Set();
+
+// Initialize search input focus
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== PAGE LOADED ===');
+    console.log('Search page loaded');
+    document.getElementById('search-input').focus();
+    
+    // Test HTMX is working
+    if (typeof htmx !== 'undefined') {
+        console.log('HTMX is loaded');
+    } else {
+        console.error('HTMX is not loaded');
+    }
+    
+    // Test if our functions exist
+    console.log('toggleSearchFilter function exists:', typeof toggleSearchFilter);
+    console.log('updateSearchInput function exists:', typeof updateSearchInput);
+    console.log('activeFilters Set exists:', typeof activeFilters);
+    
+    // Update search input to include filter parameters
+    updateSearchInput();
+    console.log('=== PAGE LOADED COMPLETE ===');
+});
+
+// Toggle search filter button
+function toggleSearchFilter(button) {
+    console.log('=== TOGGLE FILTER CLICKED ===');
+    const column = button.getAttribute('data-column');
+    console.log('Column clicked:', column);
+    console.log('Active filters before:', Array.from(activeFilters));
+    
+    if (activeFilters.has(column)) {
+        // Remove filter
+        activeFilters.delete(column);
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline');
+        console.log('Removed filter:', column);
+    } else {
+        // Add filter
+        activeFilters.add(column);
+        button.classList.remove('btn-outline');
+        button.classList.add('btn-primary');
+        console.log('Added filter:', column);
+    }
+    
+    console.log('Active filters after:', Array.from(activeFilters));
+    
+    // Update search input with new filters
+    updateSearchInput();
+    
+    // Always trigger search when filters change (even if no query)
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput.value.trim();
+    console.log('Current query:', query);
+    
+    if (query) {
+        console.log('Triggering search with query:', query);
+        // Manually trigger HTMX request with current parameters
+        const url = searchInput.getAttribute('hx-get');
+        const params = {
+            q: query,
+            columns: Array.from(activeFilters)
+        };
+        console.log('Manual HTMX request with params:', params);
+        
+        htmx.ajax('GET', url, {
+            values: params,
+            target: '#search-results'
+        });
+    } else {
+        console.log('No query - clearing results');
+        // Clear results if no query
+        document.getElementById('search-results').innerHTML = `
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">🔍</div>
+                <h3 class="text-xl font-semibold text-base-content/70 mb-2">Start searching for parts</h3>
+                <p class="text-base-content/50">Enter a part number, description, or use wildcards to find what you're looking for</p>
+            </div>
+        `;
+    }
+    console.log('=== TOGGLE FILTER COMPLETE ===');
+}
+
+// Clear all filters
+function clearAllFilters() {
+    activeFilters.clear();
+    
+    // Update all filter buttons
+    document.querySelectorAll('.search-filter-btn').forEach(button => {
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline');
+    });
+    
+    // Clear the search input
+    const searchInput = document.getElementById('search-input');
+    searchInput.value = '';
+    
+    // Update search input
+    updateSearchInput();
+    
+    // Clear the search results
+    document.getElementById('search-results').innerHTML = `
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold text-base-content/70 mb-2">Start searching for parts</h3>
+            <p class="text-base-content/50">Enter a part number, description, or use wildcards to find what you're looking for</p>
+        </div>
+    `;
+}
+
+// Update search input - hx-vals will handle the columns parameter
+function updateSearchInput() {
+    console.log('=== UPDATE SEARCH INPUT ===');
+    console.log('Active filters:', Array.from(activeFilters));
+    console.log('hx-vals will automatically pass columns:', Array.from(activeFilters));
+    console.log('=== UPDATE SEARCH INPUT COMPLETE ===');
+}
+
+// HTMX will now use hx-vals to pass the columns parameter
+// No need for custom event handler
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Core Django dependencies (already installed)
+Django>=5.2.0
+
+# Additional dependencies for dynamics_search app
+requests>=2.31.0
+pandas>=2.0.0
+
+# For PostgreSQL full-text search (optional)
+# psycopg2-binary>=2.9.0
+# django.contrib.postgres
+
+# For HTMX (included via CDN in templates)
+# htmx.org
