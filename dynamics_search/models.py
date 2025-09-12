@@ -25,6 +25,7 @@ class Part(models.Model):
     vendor_product_description = models.TextField(blank=True)
     vendor_phone = models.CharField(max_length=20, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False, help_text="Mark as deleted if not found in latest sync")
     
     # Full-text search vector field (PostgreSQL only)
     search_vector = models.TextField(null=True, blank=True) if not POSTGRES_AVAILABLE else SearchVectorField(null=True, blank=True)

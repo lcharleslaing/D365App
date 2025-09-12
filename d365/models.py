@@ -2,7 +2,28 @@ from django.db import models
 from django.utils import timezone
 
 
+class Project(models.Model):
+    """Project model to organize BOM structures"""
+    project_number = models.CharField(max_length=64, unique=True, help_text="Unique project identifier")
+    project_name = models.CharField(max_length=255, help_text="Descriptive name for the project")
+    description = models.TextField(blank=True, null=True, help_text="Optional project description")
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, help_text="Whether this project is currently active")
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['project_number']),
+            models.Index(fields=['is_active']),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.project_number} - {self.project_name}"
+
+
 class D365Job(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='jobs', help_text="Project this job belongs to")
     job_number = models.CharField(max_length=64, unique=True)
     job_name = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -13,6 +34,7 @@ class D365Job(models.Model):
 
 
 class D365Heater(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='heaters', help_text="Project this heater belongs to")
     job_number = models.CharField(max_length=64)
     dash_number = models.CharField(max_length=32, blank=True, null=True)
 
@@ -104,6 +126,7 @@ class D365Heater(models.Model):
 
 
 class D365Tank(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tanks', help_text="Project this tank belongs to")
     job_number = models.CharField(max_length=64)
     dash_number = models.CharField(max_length=32, blank=True, null=True)
 
@@ -145,6 +168,7 @@ class D365Tank(models.Model):
 
 
 class D365Pump(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='pumps', help_text="Project this pump belongs to")
     job_number = models.CharField(max_length=64)
     dash_number = models.CharField(max_length=32, blank=True, null=True)
 
@@ -197,6 +221,7 @@ class D365Pump(models.Model):
 
 
 class D365StackEconomizer(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='stack_economizers', help_text="Project this stack economizer belongs to")
     job_number = models.CharField(max_length=64)
     dash_number = models.CharField(max_length=32, blank=True, null=True)
     diameter = models.IntegerField()

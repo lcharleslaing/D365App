@@ -1,0 +1,5 @@
+item_number,description,size,product_group_id,vendor_name,unit_cost,vendor_product_number
+SAMPLE001,Sample Part 1,10mm,GROUP1,Sample Vendor 1,10.5,V001
+SAMPLE002,Sample Part 2,20mm,GROUP2,Sample Vendor 2,25.75,V002
+SAMPLE003,Sample Part 3,30mm,GROUP3,Sample Vendor 3,35.0,V003
+SAMPLE004,Sample Part 4,40mm,GROUP4,Sample Vendor 4,45.25,V004
