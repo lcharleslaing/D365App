@@ -190,3 +190,42 @@ Icon
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+
+# Django migrations
+*/migrations/
+*/migrations/*.py
+*/migrations/*.pyc
+*/migrations/*.pyo
+*/migrations/*.pyd
+*/migrations/*.pyw
+*/migrations/*.pyz
+
+# Django snapshots
+snapshots/
+snapshots/*.md
+snapshots/*.html
+snapshots/*.css
+snapshots/*.js
+snapshots/*.json
+snapshots/*.csv
+snapshots/*.txt
+snapshots/*.log
+snapshots/*.err
+
+# DATABASE
+*.db
+*.sqlite3
+db.sqlite3
+db.sqlite3-journal
+
+# VENV
+venv/
+.venv/
+env/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
